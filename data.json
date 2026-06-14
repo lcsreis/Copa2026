@@ -62,5 +62,5 @@
     { "id": "extra", "name": "Extra Stickers", "codes": ["REGU", "BRON", "PRAT", "OURO"] },
     { "id": "cocacola", "name": "Coleção Coca-Cola", "codes": ["CC1", "CC2", "CC3", "CC4", "CC5", "CC6", "CC7", "CC8", "CC9", "CC10", "CC11", "CC12", "CC13", "CC14"] }
   ],
-  "repeated": ["RSA2", "RSA5", "RSA17", "RSA19", "KOR15", "BIH1", "BIH11", "BIH16", "SUI3", "BRA8", "MAR1", "HAI18", "HAI20", "USA16", "USA18", "USA20", "PAR3", "PAR20", "TUR10", "TUR11", "TUR17", "TUR18", "GER16", "ECU7", "ECU15", "NED3", "JPN6", "JPN11", "JPN15", "JPN16", "TUN10", "TUN16", "BEL18", "EGY7", "ESP19", "KSA11", "URU8", "URU20", "FRA7", "SEN7", "SEN8", "IRQ1", "IRQ11", "IRQ16", "ALG5", "ALG6", "ALG18", "POR5", "POR7", "CRO3", "GHA5", "GHA14", "PAN7"]
+  "repeated": ["RSA5", "RSA17", "RSA19", "KOR15", "BIH11", "BIH16", "SUI3", "BRA8", "HAI18", "USA16", "USA18", "USA20", "PAR3", "PAR20", "TUR10", "TUR11", "TUR17", "TUR18", "GER16", "ECU7", "JPN16", "TUN10", "BEL18", "EGY7", "ESP19", "KSA11", "URU8", "URU20", "FRA7", "SEN7", "IRQ1", "IRQ16", "ALG5", "ALG18", "POR5", "POR7", "GHA14", "PAN7"]
 }
