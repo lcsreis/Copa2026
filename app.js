@@ -13,7 +13,9 @@
     order: "album",      // "album" | "alpha"
     onlyRepeated: false,
     editing: false,
-    search: ""
+    search: "",
+    animate: true,       // anima entrada das seções (desligado ao digitar busca)
+    lastToggled: null    // código que acabou de mudar (para o pulse)
   };
 
   var els = {};
@@ -80,6 +82,7 @@
     var groups = buildGroups(state.data);
     var frag = document.createDocumentFragment();
     var anyVisible = false;
+    var animIndex = 0;
 
     groups.forEach(function (group) {
       var visibleCodes = group.codes.filter(function (code) {
@@ -89,17 +92,23 @@
       if (visibleCodes.length === 0) return;
       anyVisible = true;
 
-      var section = document.createElement("section");
-      section.className = "section";
-
       var repeatedInGroup = group.codes.filter(function (c) { return state.repeated.has(c); }).length;
+
+      var section = document.createElement("section");
+      section.className = "section" + (state.animate ? " animate-in" : "");
+      if (state.animate) {
+        section.style.animationDelay = Math.min(animIndex, 14) * 0.04 + "s";
+        animIndex++;
+      }
 
       var head = document.createElement("div");
       head.className = "section-head";
       head.innerHTML =
         '<span class="flag">' + group.flag + "</span>" +
         "<h2>" + escapeHtml(group.name) + "</h2>" +
-        '<span class="count">' + repeatedInGroup + "/" + group.codes.length + " rep.</span>";
+        '<span class="count' + (repeatedInGroup ? " has" : "") + '">' +
+        (repeatedInGroup ? "⭐ " + repeatedInGroup : group.codes.length) +
+        "</span>";
       section.appendChild(head);
 
       var chips = document.createElement("div");
@@ -107,7 +116,10 @@
       visibleCodes.forEach(function (code) {
         var chip = document.createElement("button");
         chip.type = "button";
-        chip.className = "chip" + (state.repeated.has(code) ? " repeated" : "");
+        var cls = "chip";
+        if (state.repeated.has(code)) cls += " repeated";
+        if (code === state.lastToggled) cls += " pulse";
+        chip.className = cls;
         chip.textContent = code;
         chip.dataset.code = code;
         chips.appendChild(chip);
@@ -120,19 +132,27 @@
     if (!anyVisible) {
       var empty = document.createElement("p");
       empty.className = "empty";
-      empty.textContent = state.onlyRepeated
-        ? "Nenhuma figurinha repetida marcada ainda."
-        : "Nada encontrado para essa busca.";
+      empty.innerHTML = state.onlyRepeated
+        ? '<span class="big">📭</span>Nenhuma figurinha repetida ainda.'
+        : '<span class="big">🔍</span>Nada encontrado para essa busca.';
       els.content.appendChild(empty);
     } else {
       els.content.appendChild(frag);
     }
 
+    state.lastToggled = null; // o pulse acontece só uma vez
     updateCount();
   }
 
   function updateCount() {
-    els.repeatedCount.textContent = state.repeated.size + " repetida" + (state.repeated.size === 1 ? "" : "s");
+    var n = state.repeated.size;
+    var label = n + " repetida" + (n === 1 ? "" : "s");
+    if (els.repeatedCount.textContent !== label) {
+      els.repeatedCount.textContent = label;
+      els.repeatedCount.classList.remove("bump");
+      void els.repeatedCount.offsetWidth; // reinicia a animação
+      els.repeatedCount.classList.add("bump");
+    }
   }
 
   function escapeHtml(s) {
@@ -146,26 +166,28 @@
   function toggleCode(code) {
     if (state.repeated.has(code)) state.repeated.delete(code);
     else state.repeated.add(code);
+    state.lastToggled = code;
+    state.animate = false; // não re-anima as seções ao marcar
     saveRepeated();
     render();
   }
 
-  function buildExportData() {
-    var out = JSON.parse(JSON.stringify(state.data));
-    // Mantém só os códigos válidos do catálogo, em ordem do álbum.
-    var all = buildGroupsForExport(state.data);
-    out.repeated = all.filter(function (code) { return state.repeated.has(code); });
-    return out;
-  }
-
   // Lista plana de todos os códigos na ordem do álbum (para exportar ordenado).
-  function buildGroupsForExport(data) {
+  function allCodesAlbumOrder(data) {
     var perTeam = data.teamStickersPerTeam || 20;
     var codes = [];
     (data.sections || []).forEach(function (s) { codes = codes.concat(s.codes); });
     (data.teams || []).forEach(function (t) { codes = codes.concat(teamCodes(t, perTeam)); });
     (data.specialsAfterTeams || []).forEach(function (s) { codes = codes.concat(s.codes); });
     return codes;
+  }
+
+  function buildExportData() {
+    var out = JSON.parse(JSON.stringify(state.data));
+    out.repeated = allCodesAlbumOrder(state.data).filter(function (code) {
+      return state.repeated.has(code);
+    });
+    return out;
   }
 
   function exportJson() {
@@ -179,18 +201,18 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast("data.json exportado. Substitua o arquivo do site e publique.");
+    toast("✅ data.json exportado. Substitua o arquivo e publique.");
   }
 
   function copyJson() {
     var json = JSON.stringify(buildExportData(), null, 2);
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(json).then(
-        function () { toast("JSON copiado para a área de transferência."); },
+        function () { toast("📋 JSON copiado."); },
         function () { toast("Não foi possível copiar. Use Exportar."); }
       );
     } else {
-      toast("Cópia não suportada neste navegador. Use Exportar.");
+      toast("Cópia não suportada. Use Exportar.");
     }
   }
 
@@ -199,14 +221,12 @@
     reader.onload = function () {
       try {
         var parsed = JSON.parse(reader.result);
-        if (Array.isArray(parsed.repeated)) {
-          state.repeated = new Set(parsed.repeated);
-        }
-        // Se o catálogo também veio, atualiza (permite trocar o data.json inteiro).
+        if (Array.isArray(parsed.repeated)) state.repeated = new Set(parsed.repeated);
         if (parsed.teams && parsed.total) state.data = parsed;
+        state.animate = true;
         saveRepeated();
         render();
-        toast("JSON importado: " + state.repeated.size + " repetidas.");
+        toast("⬆ Importado: " + state.repeated.size + " repetidas.");
       } catch (e) {
         toast("Arquivo inválido.");
       }
@@ -224,31 +244,49 @@
 
   /* ---------- eventos ---------- */
 
+  var searchTimer = null;
   function bindEvents() {
     els.search.addEventListener("input", function () {
-      state.search = this.value.trim();
-      render();
+      var val = this.value.trim();
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        state.search = val;
+        state.animate = false; // digitar não re-anima
+        render();
+      }, 130);
     });
 
-    els.onlyRepeated.addEventListener("change", function () {
-      state.onlyRepeated = this.checked;
-      render();
+    // Filtro segmentado (Todas / Só repetidas)
+    Array.prototype.forEach.call(els.filterSeg.querySelectorAll(".seg-btn"), function (btn) {
+      btn.addEventListener("click", function () {
+        state.onlyRepeated = btn.dataset.filter === "repeated";
+        setActive(els.filterSeg, btn);
+        state.animate = true;
+        render();
+      });
+    });
+
+    // Ordenação (Álbum / A–Z)
+    Array.prototype.forEach.call(els.orderSeg.querySelectorAll(".seg-btn"), function (btn) {
+      btn.addEventListener("click", function () {
+        state.order = btn.dataset.order;
+        setActive(els.orderSeg, btn);
+        state.animate = true;
+        render();
+      });
+    });
+
+    // Painel de ferramentas (dono)
+    els.toolsToggle.addEventListener("click", function () {
+      var open = els.tools.hidden;
+      els.tools.hidden = !open;
+      els.toolsToggle.setAttribute("aria-expanded", String(open));
     });
 
     els.editMode.addEventListener("change", function () {
       state.editing = this.checked;
       document.body.classList.toggle("editing", state.editing);
       els.editHint.hidden = !state.editing;
-    });
-
-    Array.prototype.forEach.call(els.segButtons, function (btn) {
-      btn.addEventListener("click", function () {
-        state.order = btn.dataset.order;
-        Array.prototype.forEach.call(els.segButtons, function (b) {
-          b.classList.toggle("active", b === btn);
-        });
-        render();
-      });
     });
 
     // Delegação: clique num chip (só no modo edição).
@@ -266,6 +304,12 @@
     });
   }
 
+  function setActive(group, activeBtn) {
+    Array.prototype.forEach.call(group.querySelectorAll(".seg-btn"), function (b) {
+      b.classList.toggle("active", b === activeBtn);
+    });
+  }
+
   /* ---------- init ---------- */
 
   function init() {
@@ -274,10 +318,12 @@
       repeatedCount: document.getElementById("repeated-count"),
       albumKey: document.getElementById("album-key"),
       search: document.getElementById("search"),
-      onlyRepeated: document.getElementById("only-repeated"),
+      filterSeg: document.getElementById("filter-seg"),
+      orderSeg: document.getElementById("order-seg"),
+      toolsToggle: document.getElementById("tools-toggle"),
+      tools: document.getElementById("tools"),
       editMode: document.getElementById("edit-mode"),
       editHint: document.getElementById("edit-hint"),
-      segButtons: document.querySelectorAll(".seg-btn"),
       exportBtn: document.getElementById("export-btn"),
       copyBtn: document.getElementById("copy-btn"),
       importInput: document.getElementById("import-input"),
@@ -303,8 +349,8 @@
       })
       .catch(function (err) {
         els.content.innerHTML =
-          '<p class="empty">Erro ao carregar data.json (' + escapeHtml(err.message) +
-          "). Abra o site por um servidor (não via file://).</p>";
+          '<p class="empty"><span class="big">⚠️</span>Erro ao carregar data.json (' +
+          escapeHtml(err.message) + ").</p>";
       });
   }
 
