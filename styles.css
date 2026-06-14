@@ -324,6 +324,39 @@ body:not(.editing) .chip.repeated { cursor: pointer; }
 .chip.wanted::before { content: "✓ "; font-weight: 900; }
 .chip.pulse { animation: pulse 0.45s ease; }
 
+/* quantidade (visível para todos quando > 1) */
+.chip .qty {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0 0.32rem;
+  min-width: 1.1rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.35;
+  text-align: center;
+}
+.chip.wanted .qty { background: rgba(0, 0, 0, 0.3); }
+
+/* botão de tirar 1, só no modo edição */
+.chip-minus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-right: 0.4rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+body.editing .chip { padding: 0.4rem 0.55rem; }
+
 .empty {
   color: var(--muted);
   text-align: center;

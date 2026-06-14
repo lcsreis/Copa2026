@@ -1,7 +1,7 @@
 /* Copa 2026 — Figurinhas Repetidas
    Site estático, sem build.
-   - `repeated`: figurinhas que o DONO tem repetidas (vêm do data.json; editáveis com senha).
-   - `wanted`:   figurinhas que o VISITANTE escolheu (só local, para copiar pro WhatsApp). */
+   - `qty`:    mapa código -> quantidade que o DONO tem repetida (vem do data.json; editável com senha).
+   - `wanted`: figurinhas que o VISITANTE escolheu (só local, para copiar pro WhatsApp). */
 
 (function () {
   "use strict";
@@ -12,7 +12,7 @@
 
   var state = {
     data: null,
-    repeated: new Set(),   // do dono
+    qty: new Map(),        // código -> quantidade (>= 1) do dono
     wanted: new Set(),     // do visitante
     order: "album",        // "album" | "alpha"
     onlyRepeated: false,
@@ -22,7 +22,7 @@
     lastToggled: null
   };
 
-  var editUnlocked = false; // senha já validada nesta sessão
+  var editUnlocked = false;
   var els = {};
 
   /* ---------- estrutura ---------- */
@@ -33,7 +33,6 @@
     return codes;
   }
 
-  // Lista base (ordem do álbum) com nome/bandeira/códigos de cada grupo.
   function baseGroups(data) {
     var perTeam = data.teamStickersPerTeam || 20;
     var arr = [];
@@ -73,17 +72,53 @@
     return code.toLowerCase().indexOf(q) !== -1 || group.name.toLowerCase().indexOf(q) !== -1;
   }
 
+  // Aceita os dois formatos de `repeated`: array de códigos (qtd 1) ou objeto {código: qtd}.
+  function toQtyMap(val) {
+    var m = new Map();
+    if (Array.isArray(val)) {
+      val.forEach(function (c) { if (c) m.set(c, 1); });
+    } else if (val && typeof val === "object") {
+      Object.keys(val).forEach(function (c) {
+        var n = parseInt(val[c], 10);
+        if (n > 0) m.set(c, n);
+      });
+    }
+    return m;
+  }
+
+  function qtyToObject() {
+    var obj = {};
+    allCodesAlbumOrder(state.data).forEach(function (code) {
+      if (state.qty.has(code)) obj[code] = state.qty.get(code);
+    });
+    return obj;
+  }
+
   /* ---------- persistência ---------- */
 
-  function loadSet(key) {
+  function loadStoredQty() {
     try {
-      var raw = localStorage.getItem(key);
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return toQtyMap(JSON.parse(raw));
+    } catch (e) { /* ignora */ }
+    return null;
+  }
+  function saveQty() {
+    try {
+      var obj = {};
+      state.qty.forEach(function (n, c) { obj[c] = n; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+    } catch (e) { /* ignora */ }
+  }
+  function loadStoredWanted() {
+    try {
+      var raw = localStorage.getItem(WANTED_KEY);
       if (raw) return new Set(JSON.parse(raw));
     } catch (e) { /* ignora */ }
     return null;
   }
-  function saveSet(key, set) {
-    try { localStorage.setItem(key, JSON.stringify(Array.from(set))); } catch (e) { /* ignora */ }
+  function saveWanted() {
+    try { localStorage.setItem(WANTED_KEY, JSON.stringify(Array.from(state.wanted))); } catch (e) { /* ignora */ }
   }
 
   /* ---------- render ---------- */
@@ -96,13 +131,13 @@
 
     groups.forEach(function (group) {
       var visibleCodes = group.codes.filter(function (code) {
-        if (state.onlyRepeated && !state.repeated.has(code)) return false;
+        if (state.onlyRepeated && !state.qty.has(code)) return false;
         return matchesSearch(group, code);
       });
       if (visibleCodes.length === 0) return;
       anyVisible = true;
 
-      var repeatedInGroup = group.codes.filter(function (c) { return state.repeated.has(c); }).length;
+      var repeatedInGroup = group.codes.filter(function (c) { return state.qty.has(c); }).length;
 
       var section = document.createElement("section");
       section.className = "section" + (state.animate ? " animate-in" : "");
@@ -127,15 +162,24 @@
       var chips = document.createElement("div");
       chips.className = "chips";
       visibleCodes.forEach(function (code) {
+        var n = state.qty.get(code) || 0;
         var chip = document.createElement("button");
         chip.type = "button";
         var cls = "chip";
-        if (state.repeated.has(code)) cls += " repeated";
+        if (n > 0) cls += " repeated";
         if (state.wanted.has(code)) cls += " wanted";
         if (code === state.lastToggled) cls += " pulse";
         chip.className = cls;
-        chip.textContent = code;
         chip.dataset.code = code;
+
+        // mostra o número: na edição sempre que >0; na visualização só quando >1
+        var showNum = state.editing ? n > 0 : n > 1;
+        var minus = (state.editing && n > 0)
+          ? '<span class="chip-minus" data-act="dec" aria-label="tirar uma">−</span>'
+          : "";
+        var qtyLabel = showNum ? '<span class="qty">' + n + "</span>" : "";
+        chip.innerHTML = minus + "<span class=\"chip-code\">" + escapeHtml(code) + "</span>" + qtyLabel;
+
         chips.appendChild(chip);
       });
       section.appendChild(chips);
@@ -160,7 +204,7 @@
   }
 
   function updateCount() {
-    var n = state.repeated.size;
+    var n = state.qty.size;
     var label = n + " repetida" + (n === 1 ? "" : "s");
     if (els.repeatedCount.textContent !== label) {
       els.repeatedCount.textContent = label;
@@ -184,22 +228,28 @@
     });
   }
 
-  /* ---------- ações do dono ---------- */
+  /* ---------- ações do dono (quantidade) ---------- */
 
-  function toggleRepeated(code) {
-    if (state.repeated.has(code)) state.repeated.delete(code);
-    else state.repeated.add(code);
+  function incQty(code) {
+    state.qty.set(code, (state.qty.get(code) || 0) + 1);
+    afterQtyChange(code);
+  }
+  function decQty(code) {
+    var n = (state.qty.get(code) || 0) - 1;
+    if (n <= 0) state.qty.delete(code);
+    else state.qty.set(code, n);
+    afterQtyChange(code);
+  }
+  function afterQtyChange(code) {
     state.lastToggled = code;
     state.animate = false;
-    saveSet(STORAGE_KEY, state.repeated);
+    saveQty();
     render();
   }
 
   function buildExportData() {
     var out = JSON.parse(JSON.stringify(state.data));
-    out.repeated = allCodesAlbumOrder(state.data).filter(function (code) {
-      return state.repeated.has(code);
-    });
+    out.repeated = qtyToObject();
     return out;
   }
 
@@ -227,12 +277,12 @@
     reader.onload = function () {
       try {
         var parsed = JSON.parse(reader.result);
-        if (Array.isArray(parsed.repeated)) state.repeated = new Set(parsed.repeated);
+        if (parsed.repeated !== undefined) state.qty = toQtyMap(parsed.repeated);
         if (parsed.teams && parsed.total) state.data = parsed;
         state.animate = true;
-        saveSet(STORAGE_KEY, state.repeated);
+        saveQty();
         render();
-        toast("⬆ Importado: " + state.repeated.size + " repetidas.");
+        toast("⬆ Importado: " + state.qty.size + " repetidas.");
       } catch (e) {
         toast("Arquivo inválido.");
       }
@@ -243,23 +293,22 @@
   /* ---------- ações do visitante ---------- */
 
   function toggleWanted(code) {
-    if (!state.repeated.has(code)) return; // só repetidas podem ser escolhidas
+    if (!state.qty.has(code)) return; // só repetidas podem ser escolhidas
     if (state.wanted.has(code)) state.wanted.delete(code);
     else state.wanted.add(code);
     state.lastToggled = code;
     state.animate = false;
-    saveSet(WANTED_KEY, state.wanted);
+    saveWanted();
     render();
   }
 
   function clearWanted() {
     state.wanted.clear();
-    saveSet(WANTED_KEY, state.wanted);
+    saveWanted();
     state.animate = false;
     render();
   }
 
-  // Monta o texto agrupado por seleção, na ordem do álbum.
   function buildWantedText() {
     var lines = ["🏆 *Copa 2026* — figurinhas que eu quero", ""];
     var total = 0;
@@ -365,7 +414,6 @@
       els.toolsToggle.setAttribute("aria-expanded", String(open));
     });
 
-    // Modo edição protegido por senha.
     els.editMode.addEventListener("change", function () {
       if (this.checked && !editUnlocked) {
         var pw = window.prompt("Senha para editar:");
@@ -380,7 +428,7 @@
       document.body.classList.toggle("editing", state.editing);
       els.editHint.hidden = !state.editing;
       els.intro.hidden = state.editing;
-      updateCartBar();
+      render();
     });
 
     // Clique num chip.
@@ -388,8 +436,12 @@
       var chip = e.target.closest(".chip");
       if (!chip) return;
       var code = chip.dataset.code;
-      if (state.editing) toggleRepeated(code);
-      else toggleWanted(code);
+      if (state.editing) {
+        if (e.target.closest('[data-act="dec"]')) decQty(code);
+        else incQty(code);
+        return;
+      }
+      toggleWanted(code);
     });
 
     els.exportBtn.addEventListener("click", exportJson);
@@ -436,7 +488,7 @@
     };
 
     bindEvents();
-    state.wanted = loadSet(WANTED_KEY) || new Set();
+    state.wanted = loadStoredWanted() || new Set();
 
     fetch("data.json", { cache: "no-store" })
       .then(function (r) {
@@ -446,8 +498,8 @@
       .then(function (data) {
         state.data = data;
         els.albumKey.textContent = data.albumKey || "—";
-        var stored = loadSet(STORAGE_KEY);
-        state.repeated = stored || new Set(data.repeated || []);
+        var stored = loadStoredQty();
+        state.qty = stored || toQtyMap(data.repeated);
         render();
       })
       .catch(function (err) {
