@@ -401,6 +401,12 @@
 
     els.copyWanted.addEventListener("click", copyWanted);
     els.cartClear.addEventListener("click", clearWanted);
+
+    els.reloadPublished.addEventListener("click", function () {
+      if (!window.confirm("Descartar as marcações salvas neste aparelho e carregar a versão publicada do site?")) return;
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignora */ }
+      location.reload();
+    });
   }
 
   /* ---------- init ---------- */
@@ -421,6 +427,7 @@
       exportBtn: document.getElementById("export-btn"),
       copyBtn: document.getElementById("copy-btn"),
       importInput: document.getElementById("import-input"),
+      reloadPublished: document.getElementById("reload-published"),
       cartBar: document.getElementById("cart-bar"),
       cartCount: document.getElementById("cart-count"),
       cartClear: document.getElementById("cart-clear"),
