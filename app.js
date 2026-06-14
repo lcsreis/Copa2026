@@ -113,9 +113,12 @@
 
       var head = document.createElement("div");
       head.className = "section-head";
+      var codeLabel = group.kind === "team"
+        ? ' <span class="team-code">' + escapeHtml(group.key) + "</span>"
+        : "";
       head.innerHTML =
         '<span class="flag">' + group.flag + "</span>" +
-        "<h2>" + escapeHtml(group.name) + "</h2>" +
+        "<h2>" + escapeHtml(group.name) + codeLabel + "</h2>" +
         '<span class="count' + (repeatedInGroup ? " has" : "") + '">' +
         (repeatedInGroup ? "⭐ " + repeatedInGroup : group.codes.length) +
         "</span>";
