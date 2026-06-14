@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Copa 2026 — Figurinhas Repetidas</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-main">
+      <h1>⚽ Copa 2026 <span class="muted">— Figurinhas Repetidas</span></h1>
+      <p class="album-key">Álbum <strong id="album-key">—</strong></p>
+    </div>
+    <div class="stats">
+      <span class="badge" id="repeated-count">0 repetidas</span>
+    </div>
+  </header>
+
+  <section class="controls">
+    <input type="search" id="search" placeholder="Buscar código ou seleção (ex: BRA, BRA5)…" autocomplete="off" />
+
+    <div class="control-group">
+      <label class="toggle">
+        <input type="checkbox" id="only-repeated" />
+        <span>Mostrar só repetidas</span>
+      </label>
+
+      <label class="toggle">
+        <input type="checkbox" id="edit-mode" />
+        <span>Modo edição</span>
+      </label>
+
+      <div class="seg">
+        <button type="button" class="seg-btn active" data-order="album">Ordem do álbum</button>
+        <button type="button" class="seg-btn" data-order="alpha">Alfabética</button>
+      </div>
+    </div>
+
+    <div class="control-group io">
+      <button type="button" id="export-btn" title="Baixar data.json atualizado">⬇ Exportar JSON</button>
+      <button type="button" id="copy-btn" title="Copiar JSON para a área de transferência">📋 Copiar JSON</button>
+      <label class="file-btn" title="Carregar um data.json">⬆ Importar JSON
+        <input type="file" id="import-input" accept="application/json,.json" hidden />
+      </label>
+    </div>
+  </section>
+
+  <p id="edit-hint" class="hint" hidden>Modo edição ligado — toque numa figurinha para marcar/desmarcar como repetida. Lembre de <strong>Exportar JSON</strong> para salvar.</p>
+
+  <main id="content"><p class="loading">Carregando…</p></main>
+
+  <footer class="footer">
+    <p>Suas marcações ficam salvas neste navegador. Para publicar/compartilhar, use <strong>Exportar JSON</strong> e atualize o arquivo do site.</p>
+  </footer>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
