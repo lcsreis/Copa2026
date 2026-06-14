@@ -62,5 +62,5 @@
     { "id": "extra", "name": "Extra Stickers", "codes": ["REGU", "BRON", "PRAT", "OURO"] },
     { "id": "cocacola", "name": "Coleção Coca-Cola", "codes": ["CC1", "CC2", "CC3", "CC4", "CC5", "CC6", "CC7", "CC8", "CC9", "CC10", "CC11", "CC12", "CC13", "CC14"] }
   ],
-  "repeated": []
+  "repeated": ["RSA2", "RSA5", "RSA17", "RSA19", "BIH1", "BIH11", "BIH16", "TUR18"]
 }
