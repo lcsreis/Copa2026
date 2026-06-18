@@ -67,10 +67,10 @@
     "BIH5": 1, "BIH11": 2, "BIH16": 4, "SUI3": 2, "SUI12": 1, "BRA8": 1, "MAR9": 1,
     "HAI18": 1, "USA16": 1, "USA18": 1, "USA20": 2, "PAR3": 1, "PAR20": 1, "TUR1": 1,
     "TUR10": 3, "TUR11": 3, "TUR17": 1, "TUR18": 1, "GER16": 1, "CIV12": 1, "ECU6": 1,
-    "ECU7": 1, "ECU10": 1, "NED3": 1, "JPN11": 1, "JPN16": 1, "SWE4": 1, "SWE13": 1,
+    "ECU7": 1, "ECU10": 1, "JPN11": 1, "JPN16": 1, "SWE4": 1,
     "TUN10": 2, "BEL18": 1, "EGY7": 1, "ESP8": 1, "ESP19": 1, "KSA11": 1, "URU8": 1,
     "URU20": 2, "FRA7": 1, "SEN4": 1, "SEN7": 1, "IRQ1": 1, "ALG5": 1, "ALG18": 1,
     "JOR17": 1, "POR5": 1, "COD8": 1, "GHA14": 1, "PAN7": 1
   },
-  "new": ["RSA3", "KOR4", "CZE16", "BIH1", "BIH5", "SUI12", "MAR9", "TUR1", "CIV12", "ECU6", "ECU10", "NED3", "SWE4", "SWE13", "ESP8", "SEN4", "JOR17", "COD8"]
+  "new": ["RSA3", "KOR4", "CZE16", "BIH1", "BIH5", "SUI12", "MAR9", "TUR1", "CIV12", "ECU6", "ECU10", "SWE4", "ESP8", "SEN4", "JOR17", "COD8"]
 }
