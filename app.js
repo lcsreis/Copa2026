@@ -14,8 +14,10 @@
     data: null,
     qty: new Map(),        // código -> quantidade (>= 1) do dono
     wanted: new Set(),     // do visitante
+    baseline: new Set(),   // códigos repetidos na última versão publicada
+    publishedNew: new Set(), // novidades já publicadas (data.new)
     order: "album",        // "album" | "alpha"
-    onlyRepeated: false,
+    filter: "all",         // "all" | "repeated" | "new"
     editing: false,
     search: "",
     animate: true,
@@ -86,6 +88,18 @@
     return m;
   }
 
+  // Códigos repetidos atuais que ainda não estavam na última publicação.
+  function addedSinceBaseline() {
+    var s = new Set();
+    state.qty.forEach(function (_n, code) { if (!state.baseline.has(code)) s.add(code); });
+    return s;
+  }
+
+  // Conjunto exibido como "novo": preview ao vivo na edição; publicado na visualização.
+  function currentNewSet() {
+    return state.editing ? addedSinceBaseline() : state.publishedNew;
+  }
+
   function qtyToObject() {
     var obj = {};
     allCodesAlbumOrder(state.data).forEach(function (code) {
@@ -128,10 +142,12 @@
     var frag = document.createDocumentFragment();
     var anyVisible = false;
     var animIndex = 0;
+    var newSet = currentNewSet();
 
     groups.forEach(function (group) {
       var visibleCodes = group.codes.filter(function (code) {
-        if (state.onlyRepeated && !state.qty.has(code)) return false;
+        if (state.filter === "repeated" && !state.qty.has(code)) return false;
+        if (state.filter === "new" && !newSet.has(code)) return false;
         return matchesSearch(group, code);
       });
       if (visibleCodes.length === 0) return;
@@ -167,6 +183,7 @@
         chip.type = "button";
         var cls = "chip";
         if (n > 0) cls += " repeated";
+        if (newSet.has(code)) cls += " new";
         if (state.wanted.has(code)) cls += " wanted";
         if (code === state.lastToggled) cls += " pulse";
         chip.className = cls;
@@ -190,9 +207,11 @@
     if (!anyVisible) {
       var empty = document.createElement("p");
       empty.className = "empty";
-      empty.innerHTML = state.onlyRepeated
+      empty.innerHTML = state.filter === "repeated"
         ? '<span class="big">📭</span>Nenhuma figurinha repetida ainda.'
-        : '<span class="big">🔍</span>Nada encontrado para essa busca.';
+        : state.filter === "new"
+          ? '<span class="big">✨</span>Nenhuma novidade ainda.'
+          : '<span class="big">🔍</span>Nada encontrado para essa busca.';
       els.content.appendChild(empty);
     } else {
       els.content.appendChild(frag);
@@ -250,6 +269,9 @@
   function buildExportData() {
     var out = JSON.parse(JSON.stringify(state.data));
     out.repeated = qtyToObject();
+    out.new = allCodesAlbumOrder(state.data).filter(function (code) {
+      return state.qty.has(code) && !state.baseline.has(code);
+    });
     return out;
   }
 
@@ -392,7 +414,7 @@
 
     Array.prototype.forEach.call(els.filterSeg.querySelectorAll(".seg-btn"), function (btn) {
       btn.addEventListener("click", function () {
-        state.onlyRepeated = btn.dataset.filter === "repeated";
+        state.filter = btn.dataset.filter || "all";
         setActive(els.filterSeg, btn);
         state.animate = true;
         render();
@@ -498,6 +520,9 @@
       .then(function (data) {
         state.data = data;
         els.albumKey.textContent = data.albumKey || "—";
+        // baseline = o que estava publicado (antes de aplicar o override local)
+        state.baseline = new Set(toQtyMap(data.repeated).keys());
+        state.publishedNew = new Set(Array.isArray(data.new) ? data.new : []);
         var stored = loadStoredQty();
         state.qty = stored || toQtyMap(data.repeated);
         render();
