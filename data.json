@@ -68,7 +68,7 @@
     "TUR11": 3, "TUR14": 1, "TUR17": 1, "TUR18": 1, "CIV12": 1, "ECU7": 1, "ECU10": 1,
     "JPN11": 1, "JPN16": 1, "SWE7": 1, "TUN10": 2, "BEL18": 1, "EGY7": 1, "EGY11": 1,
     "KSA11": 1, "URU8": 1, "URU20": 2, "FRA7": 1, "SEN7": 1, "SEN12": 1, "IRQ1": 1,
-    "ALG18": 1, "JOR3": 1, "POR5": 1, "UZB10": 1
+    "ALG18": 1, "JOR3": 1, "POR5": 1, "UZB10": 1, "FWC19": 1
   },
-  "new": ["TUR11","TUR14","TUR17","SWE7","EGY11","SEN12","JOR3","UZB10"]
+  "new": ["TUR11","TUR14","TUR17","SWE7","EGY11","SEN12","JOR3","UZB10","FWC19"]
 }
